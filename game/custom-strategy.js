@@ -1,5 +1,8 @@
-const Strategy = require("passport-strategy");
-const axios = require("axios");
+import { Strategy } from "passport-strategy";
+import https from "https";
+import axios from "axios";
+
+const agent = new https.Agent({ rejectUnauthorized: false });
 
 class OAuth2Strategy extends Strategy {
   constructor(options, verify) {
@@ -22,15 +25,15 @@ class OAuth2Strategy extends Strategy {
       // Exchange
       const params = new URLSearchParams();
       params.append("code", code);
-      params.append("redirect_uri", this.redirect_uri);
       params.append("client_id", this.client_id);
       params.append("client_secret", this.client_secret);
 
       axios
-        .post(this.token_uri, params)
+        .post(this.token_uri, params, {
+          httpsAgent: agent,
+        })
         .then((response) => {
-          const accessToken = response.data.access_token;
-
+          const accessToken = response.data;
           this.fetchProfile(accessToken, (err, profile) => {
             if (err) return this.error(err);
             this.verify(accessToken, profile, (err, user, info) => {
@@ -42,18 +45,22 @@ class OAuth2Strategy extends Strategy {
         .catch((error) => {
           this.error(error);
         });
+    } else {
+      this.error(new Error("missing code"));
     }
   }
 
   fetchProfile(accessToken, callback) {
     axios
       .get(this.userinfo_uri, {
+        httpsAgent: agent,
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
       })
       .then((response) => {
         const profile = response.data;
+
         callback(null, profile);
       })
       .catch((error) => {

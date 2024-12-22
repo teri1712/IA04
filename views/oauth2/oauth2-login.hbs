@@ -3,7 +3,7 @@
   style="margin-top: 100px;"
 >
   <h1 class="mb-3">Oauth2 Login Page</h1>
-  <form method="post">
+  <form action="/oauth2/login" + method="post">
     {{#if message}}
       <p class="alert alert-danger">{{message}}</p>
     {{/if}}
@@ -14,6 +14,7 @@
         class="form-control"
         id="username"
         name="username"
+        value="c"
         aria-describedby="emailHelp"
       />
     </div>
@@ -24,20 +25,25 @@
         class="form-control"
         id="password"
         name="password"
+        value="c"
       />
     </div>
+    <input
+      type="text"
+      class="form-control"
+      name="redirect_uri"
+      value="{{redirect_uri}}"
+      hidden
+    />
+    <input
+      type="text"
+      class="form-control"
+      name="client_id"
+      value="{{client_id}}"
+      hidden
+    />
 
-    <div class="mb-3">
-      <label for="max_minutes" class="form-label">Số phút tối đa</label>
-      <input
-        type="number"
-        class="form-control"
-        id="max_minutes"
-        name="max_minutes"
-      />
-    </div>
     <button type="submit" class="btn btn-primary">Submit</button>
   </form>
-  <a href="/signUp">Or Sign Up</a>
 
 </div>

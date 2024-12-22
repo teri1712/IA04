@@ -16,17 +16,17 @@ import path from "path";
 const app = express();
 const PORT = process.env.OAUTH_PORT;
 const __dirname = path.resolve();
+
+app.set("views", __dirname + "/views/oauth2");
 app.engine(
   "hbs",
   exphbs.engine({
     defaultLayout: "main.hbs",
-    layoutsDir: "views/layouts",
-    partialsDir: "views/partials",
-    cookie: { maxAge: 30 * 60 * 1000 },
+    layoutsDir: path.join(app.get("views"), "layouts"),
+    partialsDir: path.join(app.get("views"), "partials"),
   })
 );
 app.set("view engine", "hbs");
-app.set("views", __dirname + "/views/oauth2");
 app.use(express.static(__dirname + "/public"));
 app.use(express.json());
 app.use(express.text());
@@ -36,12 +36,13 @@ app.use(
   session({
     secret: process.env.SESSION_KEY,
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false,
   })
 );
 
 app.use((req, res, next) => {
   console.log(req.path);
+
   if (req.path.startsWith("/login") || req.path.startsWith("/signUp")) {
     if (req.session.username) {
       res.redirect("/");

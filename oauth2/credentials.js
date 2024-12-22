@@ -28,6 +28,9 @@ credRouter.post("/credentials", async (req, res) => {
   await clientDb.updateUri(client, req.body.redirect_uri);
   res.render("credentials", {
     client: client,
+    auth_uri: OAUTH2_URL + "authorize",
+    userinfo_uri: OAUTH2_URL + "userinfo",
+    token_uri: OAUTH2_URL + "token",
   });
 });
 credRouter.post("/activate", async (req, res) => {

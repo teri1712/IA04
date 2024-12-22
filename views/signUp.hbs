@@ -1,0 +1,63 @@
+<div
+  class="d-flex flex-column align-items-center justify-content-center"
+  style="margin-top: 100px;"
+>
+  <h1 class="mb-3">Sign Up</h1>
+  <form method="post">
+    {{#if message}}
+      <p class="alert alert-danger">{{message}}</p>
+    {{/if}}
+
+    <div class="mb-3">
+      <label for="username" class="form-label">Username</label>
+      <input
+        type="text"
+        class="form-control"
+        id="username"
+        name="username"
+        required
+        aria-describedby="emailHelp"
+      />
+    </div>
+    <div class="mb-3">
+      <label for="password" class="form-label">Password</label>
+      <input
+        type="password"
+        class="form-control"
+        id="password"
+        name="password"
+        required
+      />
+    </div>
+    <div class="mb-3">
+      <label for="name" class="form-label">Name</label>
+      <input
+        type="text"
+        class="form-control"
+        id="name"
+        name="name"
+        aria-describedby="emailHelp"
+        required
+      />
+    </div>
+    <div class="mb-3">
+      <label for="exampleInputEmail1" class="form-label">Email address</label>
+      <input
+        type="email"
+        class="form-control"
+        id="exampleInputEmail1"
+        name="email"
+        aria-describedby="emailHelp"
+        required
+      />
+      <div id="emailHelp" class="form-text">We'll never share your email with
+        anyone else.</div>
+    </div>
+
+    <div class="mb-3">
+      <label for="birthday" class="form-label">Birthday</label>
+      <input type="date" class="form-control" id="dob" name="dob" required />
+    </div>
+    <button type="submit" class="btn btn-primary mt-3">Submit</button>
+  </form>
+</div>

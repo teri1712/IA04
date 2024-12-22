@@ -1,0 +1,43 @@
+<div
+  class="d-flex flex-column align-items-center justify-content-center"
+  style="margin-top: 100px;"
+>
+  <h1 class="mb-3">Oauth2 Login Page</h1>
+  <form method="post">
+    {{#if message}}
+      <p class="alert alert-danger">{{message}}</p>
+    {{/if}}
+    <div class="mb-3">
+      <label for="username" class="form-label">Username</label>
+      <input
+        type="text"
+        class="form-control"
+        id="username"
+        name="username"
+        aria-describedby="emailHelp"
+      />
+    </div>
+    <div class="mb-3">
+      <label for="password" class="form-label">Password</label>
+      <input
+        type="password"
+        class="form-control"
+        id="password"
+        name="password"
+      />
+    </div>
+
+    <div class="mb-3">
+      <label for="max_minutes" class="form-label">Số phút tối đa</label>
+      <input
+        type="number"
+        class="form-control"
+        id="max_minutes"
+        name="max_minutes"
+      />
+    </div>
+    <button type="submit" class="btn btn-primary">Submit</button>
+  </form>
+  <a href="/signUp">Or Sign Up</a>
+
+</div>

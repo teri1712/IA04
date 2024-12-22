@@ -1,108 +1,143 @@
-import express from "express";
-import { v4 as uuidv4 } from "uuid";
-import jwt from "jsonwebtoken";
-import clientDb from "./models/client.js";
+import dotenv from "dotenv";
+dotenv.config();
+
+import express, { query } from "express";
+import bcrypt from "bcrypt";
+import session from "express-session";
+import exphbs from "express-handlebars";
 import userDb from "./models/user.js";
+import fs from "fs";
+import https from "https";
+import upload from "./oauth2/file-storage.js";
+import oauth2Router from "./oauth2/endpoints.js";
+import credRouter from "./oauth2/credentials.js";
+import path from "path";
 
-const oauth2Router = express.Router();
+const app = express();
+const PORT = process.env.PORT;
+const __dirname = path.resolve();
+app.engine(
+  "hbs",
+  exphbs.engine({
+    defaultLayout: "main.hbs",
+    layoutsDir: "views/layouts",
+    partialsDir: "views/partials",
+    cookie: { maxAge: 30 * 60 * 1000 },
+  })
+);
+console.log(__dirname);
+app.set("view engine", "hbs");
+app.set("views", __dirname + "/views");
+app.use(express.static(__dirname + "/public"));
+app.use(express.json());
+app.use(express.text());
+app.use(express.urlencoded({ extended: true }));
 
-const authCodes = {};
-// Authorization endpoint
-oauth2Router.get("/authorize", async (req, res) => {
-  const client = await clientDb.getById(req.query.client_id);
+app.use(
+  session({
+    secret: process.env.SESSION_KEY,
+    resave: false,
+    saveUninitialized: true,
+  })
+);
 
-  if (!client) {
-    return res.status(400).send("client not found");
+app.use((req, res, next) => {
+  console.log(req.path);
+  if (req.path.startsWith("/login") || req.path.startsWith("/signUp")) {
+    if (req.session.username) {
+      res.redirect("/");
+    } else {
+      next();
+    }
+    return;
   }
-
-  req.session.client_id = req.query.client_id;
-  req.session.redirect_uri = req.query.redirect_uri;
-  req.session.state = req.query.state; // 'chuẩn' phải đảm bảo csrf?
-
-  // Render login form
-  res.render("oauth2-login");
+  if (!req.path.startsWith("/oauth2") && !req.session.username) {
+    res.redirect("/login");
+    return;
+  }
+  next();
 });
 
-// Oauth2 login endpoint
-oauth2Router.post("/login", async (req, res) => {
-  const { username, password, max_minutes } = req.body;
+app.get("/login", async (req, res) => {
+  res.render("login");
+});
 
+app.post("/login", async (req, res) => {
+  const { username, password } = req.body;
   const user = await userDb.getByUsername(username);
   if (!user) {
-    res.render("/login", { message: "Username not exists" });
+    res.render("login", { message: "Username not exists" });
     return;
   }
   bcrypt.compare(password, user.password, (err, same) => {
     if (err || !same) {
-      res.render("oauth2-login", { message: "Wrong password" });
+      res.render("login", { message: "Wrong password" });
     } else {
-      const code = uuidv4(); // authorization code
-      authCodes[code] = {
-        client_id: req.session.client_id,
-        username: username,
-        max_minutes: max_minutes,
-      };
-      setTimeout(() => {
-        delete authCodes[code];
-      }, 5000);
-      // Redirect về client
-      const redirect_uri = `${req.session.redirect_uri}?code=${code}&state=${req.session.state}`;
-      res.redirect(redirect_uri);
+      req.session.username = username;
+      res.redirect("/");
     }
   });
 });
 
-// Access token endpoint (dùng jwt)
-oauth2Router.post("/token", async (req, res) => {
-  const client_id = req.body.client_id;
-  const client_secret = req.body.client_secret;
-
-  const client = await clientDb.getById(client_id);
-
-  if (!client || client_secret != client.client_secret) {
-    return res.status(401).send("Invalid client credentials");
-  }
-
-  const code = req.body.code;
-  const authCode = authCodes[code];
-
-  if (!authCode) {
-    return res.status(400).send("Invalid authorization code");
-  }
-
-  const payload = {
-    username: authCode.username,
-    client_id: authCode.client_id,
-    issue_at: Math.floor(Date.now() / 1000),
-    expire: Math.floor(Date.now() / 1000) + authCode.max_minutes,
-  };
-
-  const accessToken = jwt.sign(payload, APP_SECRET, {
-    expiresIn: authCode.max_minutes + "m",
-  });
-
-  res.send(accessToken);
+app.get("/signUp", (req, res) => {
+  res.render("signUp");
 });
 
-// user info/resource endpoint
-oauth2Router.get("/userinfo", (req, res) => {
-  const header = req.headers.authorization;
-
-  if (!header) {
-    return res.status(401).send("Missing Authorization Header");
+app.post("/signUp", async (req, res) => {
+  if (await userDb.getByUsername(req.body.username)) {
+    res.render("signUp", { message: "Username exists" });
+    return;
   }
+  await userDb.create(req.body);
+  req.session.username = req.body.username;
+  res.redirect("/");
+});
 
-  const accessToken = header.split(" ")[1]; // beaer
-
-  if (!accessToken) {
-    return res.status(401).send("Invalid token");
-  }
-  jwt.verify(accessToken, APP_SECRET, async (err, claims) => {
+app.post("/logout", (req, res) => {
+  req.session.destroy((err) => {
     if (err) {
-      return res.status(401).send("Invalid or expired token");
+      console.error(err);
+      return res.status(500);
     }
-    res.json(await userDb.getByUsername(claims.username));
+    res.redirect("/login");
   });
 });
 
-export default oauth2Router;
+app.get("/", async (req, res) => {
+  const user = await userDb.getByUsername(req.session.username);
+  const date = new Date(user.dob);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  user.dob = `${year}-${month}-${day}`;
+  res.render("home", { user: user });
+});
+
+app.post("/avatar", upload.single("file"), async (req, res) => {
+  const uploadedFile = req.file;
+
+  if (!uploadedFile) {
+    return res.status(400).send("Error");
+  }
+  const user = await userDb.getByUsername(req.session.username);
+  const old = user.avatar_url;
+  if (old) {
+    fs.unlinkSync(__dirname + "/public/avatar/" + old);
+  }
+  await userDb.updateAvatar(user, uploadedFile.filename);
+  res.redirect("/");
+});
+
+app.use("/oauth2", oauth2Router);
+app.use("/", credRouter);
+
+// https
+const options = {
+  key: fs.readFileSync(process.env.SSL_SERVER_KEY),
+  cert: fs.readFileSync(process.env.SSL_SERVER_CERT),
+};
+const server = https.createServer(options, app);
+
+server.listen(PORT, () => {
+  console.log(`Server running on https://localhost:${PORT}`);
+});

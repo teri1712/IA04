@@ -9,7 +9,8 @@ import path from "path";
 import fs from "fs";
 import https from "https";
 import OAuth2Strategy from "./game/custom-strategy.js";
-import { v4 as uuidv4 } from "uuid";
+import online_broker from "./views/game/online-broker.js";
+import messageRouter from "./game/messageRouter.js";
 
 const app = express();
 const PORT = process.env.GAME_PORT;
@@ -60,6 +61,8 @@ passport.use(
       return done(null, {
         id: profile.id,
         name: profile.name,
+        email: profile.email,
+        dob: profile.dob,
         avatar_url: profile.avatar_url,
         accessToken: accessToken,
       });
@@ -80,6 +83,9 @@ app.use((req, res, next) => {
   if (!req.isAuthenticated() && !req.path.startsWith("/oauth2")) {
     res.redirect("/login");
     return;
+  }
+  if (req.isAuthenticated()) {
+    online_broker.onOnline(req.user);
   }
   next();
 });
@@ -103,6 +109,7 @@ app.get(
     let max_minutes = parseInt(req.query.max_minutes);
     req.session.cookie.expires = new Date(Date.now() + max_minutes * 1000);
     req.session.cookie.maxAge = max_minutes * 1000;
+    online_broker.onOnline(req.user);
 
     res.redirect("/");
   }
@@ -118,9 +125,17 @@ app.post("/logout", (req, res) => {
   });
 });
 
-app.get("/", async (req, res) => {
-  res.render("home");
+app.get("/", (req, res) => {
+  res.render("home", {
+    users: online_broker.getAllUser(),
+  });
 });
+
+app.post("/ping", async (req, res) => {
+  return res.status(200);
+});
+
+app.use("/", messageRouter);
 
 // https
 const options = {

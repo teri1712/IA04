@@ -9,8 +9,11 @@ import path from "path";
 import fs from "fs";
 import https from "https";
 import OAuth2Strategy from "./game/custom-strategy.js";
-import online_broker from "./views/game/online-broker.js";
+import online_broker from "./game/brokers/online-broker.js";
 import messageRouter from "./game/messageRouter.js";
+import socketIo from "socket.io";
+import message_broker from "./game/brokers/message-broker.js";
+import match_broker from "./game/brokers/match-broker.js";
 
 const app = express();
 const PORT = process.env.GAME_PORT;
@@ -90,18 +93,6 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get("/login", (req, res) => {
-  res.render("login");
-});
-app.post("/login", (req, res) => {
-  const queryParams = new URLSearchParams({
-    client_id: process.env.CLIENT_ID,
-    redirect_uri: process.env.REDIRECT_URI,
-    max_minutes: req.body.max_minutes,
-  }).toString();
-  res.redirect(process.env.AUTHORIZATION_URI + "?" + queryParams);
-});
-
 app.get(
   "/oauth2/redirect",
   passport.authenticate("oauth2-strategy", { failureRedirect: "/login" }),
@@ -114,6 +105,18 @@ app.get(
     res.redirect("/");
   }
 );
+
+app.get("/login", (req, res) => {
+  res.render("login");
+});
+app.post("/login", (req, res) => {
+  const queryParams = new URLSearchParams({
+    client_id: process.env.CLIENT_ID,
+    redirect_uri: process.env.REDIRECT_URI,
+    max_minutes: req.body.max_minutes,
+  }).toString();
+  res.redirect(process.env.AUTHORIZATION_URI + "?" + queryParams);
+});
 
 app.post("/logout", (req, res) => {
   req.logout((err) => {
@@ -131,12 +134,7 @@ app.get("/", (req, res) => {
   });
 });
 
-app.post("/ping", async (req, res) => {
-  return res.status(200);
-});
-
 app.use("/", messageRouter);
-
 // https
 const options = {
   key: fs.readFileSync(process.env.SSL_SERVER_KEY),
@@ -146,4 +144,29 @@ const server = https.createServer(options, app);
 
 server.listen(PORT, () => {
   console.log(`Server running on https://localhost:${PORT}`);
+});
+
+const io = socketIo(server);
+io.use((socket, next) => {
+  const user = socket.handshake.query.user;
+  socket.user = user;
+  next();
+});
+io.on("connection", (socket) => {
+  console.log("a user connected:", socket.user);
+  const user = socket.user;
+  online_broker.onOnline(user, socket);
+
+  socket.on("game", (msg) => {
+    const type = msg.type;
+    const match_id = msg.match_id;
+    if (type == "start") {
+      match_broker.start(match_id);
+    } else if (type == "move") {
+      match_broker.move(match_id);
+    }
+  });
+  socket.on("disconnect", () => {
+    online_broker.onOffline(socket.user);
+  });
 });

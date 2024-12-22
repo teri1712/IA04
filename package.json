@@ -30,6 +30,7 @@
     "passport-strategy": "^1.0.0",
     "pg": "^8.13.1",
     "pg-promise": "^11.10.2",
+    "socket.io": "^4.8.1",
     "uuid": "^11.0.3",
     "uuidv4": "^6.2.13"
   }

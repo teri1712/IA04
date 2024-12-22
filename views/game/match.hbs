@@ -3,9 +3,9 @@
     class="w-100 navbar navbar-expand-lg navbar-light d-flex flex-row rounded border p-2 align-items-center"
   >
     <div class="flex-grow-1 d-flex flex-row align-items-center">
-      <a class="nav-link disabled" href="/">Online users</a>
+      <a class="nav-link" href="/">Online users</a>
       <a class="nav-link" href="/chat">Chat</a>
-      <a class="nav-link" href="/match">Matches</a>
+      <a class="nav-link disabled" href="/match">Matches</a>
     </div>
     <form action="/logout" method="post" class="m-0">
       <button type="submit" class="btn btn-warning">Logout</button>
@@ -18,13 +18,13 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;"
   >
-    {{#each users}}
+    {{#each matches}}
       <div class="card g-col-4">
         <div class="card-body">
-          <h5 class="card-title">{{name}}</h5>
-          <h7 class="card-title">Email: {{email}}</h7>
-          <p class="card-title">DOB: {{dob}}</p>
-          <a href="/chat?user={{id}}" class="btn btn-warning">Inbox</a>
+          <h5 class="card-title">Được tạo bởi {{owner.name}}</h5>
+          <h7 class="card-title">Số người tham gia: {{players_length}}</h7>
+          <p class="card-title">Trạng thái: {{state}}</p>
+          <a href="/match?id={{id}}" class="btn btn-warning">Join</a>
         </div>
       </div>
     {{/each}}

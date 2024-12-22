@@ -1,45 +1,33 @@
-import { Router } from "express";
-import messageDb from "../models/message";
-import online_broker from "../views/game/online-broker";
+import { json, Router } from "express";
+import messageDb from "../models/message.js";
+import message_broker from "./brokers/message-broker.js";
 
-const messageRouter = express.Router();
-async function getMessages(user, from, to) {
+const messageRouter = Router();
+
+messageRouter.get("/chat", async (req, res) => {
+  const current_time = new Date().getTime();
   const messages = await messageDb.getByTime(from, to);
   for (let message of messages) {
     message.isMine = message.from.id == user.id;
   }
-  return messages;
-}
-messageRouter.get("/chat", async (req, res) => {
-  const current_time = new Date().getTime();
   res.render("chat", {
-    user: req.user,
+    user: JSON.stringify(req.user),
     current_time: current_time,
-    messages: await getMessages(req.user, -1, current_time),
+    messages: messages,
   });
 });
 
 messageRouter.post("/message", async (req, res) => {
   await messageDb.create(req.user.id, req.body);
+  message_broker.onMessage(req.body);
   return res.status(200);
 });
 
-messageRouter.get("/message", async (req, res) => {
-  const { from, to } = req.query;
-  const user = req.user;
-  const messages = await getMessages(req.user, from, to);
-
-  if (messages.length == 0) {
-    online_broker.onListening(user, res);
-    setTimeout(() => {
-      online_broker.onTimeout(user, res);
-    }, 3000);
-    return;
+messageRouter.post("/match-message", async (req, res) => {
+  const { match_id, message } = req.body;
+  if (message_broker.onMatchMessage(match_id, message)) {
+    return res.status(200);
   }
-  return res.status(200).json({
-    type: "message",
-    messages: messages,
-  });
 });
 
 export default messageRouter;

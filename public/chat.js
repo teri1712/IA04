@@ -35,43 +35,23 @@ function sendMessage() {
       window.alert("Network error" + error);
     });
 }
-let myId;
-let current_time = -1;
-function poll() {
-  const next_time = new Date().getTime();
-  const queryParams = new URLSearchParams({
-    from: current_time,
-    to: next_time,
-  });
-  current_time = next_time;
-  fetch(`/message?` + queryParams.toString(), {
-    method: "GET",
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      const type = data.type;
-      if (type == "message") {
-        for (let message of data.messages) {
-          handleMessage(message);
-        }
-      }
-      poll();
-    })
-    .catch((error) => {
-      console.error(error);
-    });
-}
-function startPolling(me, time) {
-  myId = me;
+let me;
+function startChat(user) {
+  me = user;
   current_time = time;
   document.addEventListener("DOMContentLoaded", (event) => {
-    poll();
+    const socket = io({ query: { user: user } });
+    socket.on("message", function (data) {
+      if (data.type == "global") {
+        handleMessage(data.message);
+      }
+    });
   });
 }
 
 function handleMessage(message) {
   const container = document.getElementsByClassName("message-container")[0];
-  if (message.from.id == myId) {
+  if (message.from.id == me) {
     return;
   }
 

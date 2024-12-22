@@ -1,14 +1,21 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import express from "express";
 import { v4 as uuidv4 } from "uuid";
 import clientDb from "../models/client.js";
 import userDb from "../models/user.js";
 
 const credRouter = express.Router();
+const OAUTH2_URL = "https://localhost:" + process.env.OAUTH_PORT + "/oauth2/";
 
 credRouter.get("/credentials", async (req, res) => {
   const user = await userDb.getByUsername(req.session.username);
   res.render("credentials", {
     client: await clientDb.getByUser(user),
+    auth_uri: OAUTH2_URL + "authorize",
+    userinfo_uri: OAUTH2_URL + "userinfo",
+    token_uri: OAUTH2_URL + "token",
   });
 });
 credRouter.post("/credentials", async (req, res) => {

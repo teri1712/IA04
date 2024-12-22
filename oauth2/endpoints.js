@@ -7,6 +7,7 @@ import userDb from "../models/user.js";
 const oauth2Router = express.Router();
 
 const authCodes = {};
+
 // Authorization endpoint
 oauth2Router.get("/authorize", async (req, res) => {
   const client = await clientDb.getById(req.query.client_id);

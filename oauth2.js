@@ -14,7 +14,7 @@ import credRouter from "./oauth2/credentials.js";
 import path from "path";
 
 const app = express();
-const PORT = process.env.PORT;
+const PORT = process.env.OAUTH_PORT;
 const __dirname = path.resolve();
 app.engine(
   "hbs",
@@ -25,9 +25,8 @@ app.engine(
     cookie: { maxAge: 30 * 60 * 1000 },
   })
 );
-console.log(__dirname);
 app.set("view engine", "hbs");
-app.set("views", __dirname + "/views");
+app.set("views", __dirname + "/views/oauth2");
 app.use(express.static(__dirname + "/public"));
 app.use(express.json());
 app.use(express.text());

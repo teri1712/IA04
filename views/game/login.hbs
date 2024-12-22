@@ -1,0 +1,21 @@
+<div
+  class="d-flex flex-column align-items-center justify-content-center"
+  style="margin-top: 100px;"
+>
+  <h1 class="mb-3">Login Using Oauth2 Server</h1>
+  <form action="{{auth_uri}}" method="get">
+    <div class="mb-3">
+      <label for="max-minutes" class="form-label">Chọn số phút tối đa cho ghi
+        nhớ đăng nhập</label>
+      <input
+        type="number"
+        class="form-control"
+        id="max-minutes"
+        name="max-minutes"
+      />
+    </div>
+    <button type="submit" class="btn btn-primary">Sign in with Auth Server</button>
+  </form>
+  <a href="/signUp">Or Sign Up</a>
+
+</div>

@@ -8,7 +8,7 @@ function countDown(at_time) {
   if (cd.interval) {
     clearInterval(cd.interval);
   }
-  cd.current_time = at_time ? at_time : match.max_time;
+  cd.current_time = at_time ? at_time : parseInt(match.max_time) / 1000;
   cd.textContent = cd.current_time;
   cd.style.visibility = "visible";
 

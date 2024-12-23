@@ -46,18 +46,24 @@
   <div id="confirm-toast" class="toast p-3">
     <div class="toast-body">
       Confirm start game request
-      <div class="mt-2 pt-2 border-top">
-        <button
-          id="confirm-button"
-          type="button"
-          class="btn btn-primary btn-sm"
-        >Ok</button>
+      <div class="mt-2 pt-2 border-top d-flex flex-row">
+        <form action="/match/start" method="post">
+          <button
+            id="confirm-button"
+            type="submit"
+            class="btn btn-primary btn-sm"
+            style="width: 100px;
+            height: 50px;"
+          >Ok</button>
+        </form>
         <button
           id="confirm-close"
           type="button"
           class="btn btn-secondary btn-sm"
           data-bs-dismiss="toast"
-        >Close</button>
+          style="width: 100px;
+            height: 50px;"
+        >Từ chối</button>
       </div>
     </div>
   </div>

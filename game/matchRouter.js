@@ -34,12 +34,13 @@ matchRouter.get("/request", async (req, res) => {
     user: user,
   });
   res.request_user = user;
-  requestCache.set(owner_id, res);
+  requestCache.set(parseInt(owner_id), res);
 });
 
 matchRouter.post("/decline", async (req, res) => {
   const user = req.user;
-  const cache = requestCache.get(user.id);
+  const cache = requestCache.get(parseInt(user.id));
+
   if (cache) {
     cache.status(400).send("Người này đã từ chối yêu cầu của bạn");
     requestCache.delete(user.id);
@@ -48,8 +49,8 @@ matchRouter.post("/decline", async (req, res) => {
 
 matchRouter.post("/start", async (req, res) => {
   const user = req.user;
-  const cache = requestCache.get(user.id);
-  if (cache) {
+  const cache = requestCache.get(parseInt(user.id));
+  if (!cache) {
     return res.sendStatus(400);
   }
   await match_broker.start(user, cache.request_user);
@@ -91,7 +92,7 @@ matchRouter.get("/user", async (req, res) => {
 
   if (match.state == "waiting") {
     if (match.user_id != user.id) return res.sendStatus(400);
-    console.log(JSON.stringify(match));
+
     res.render("match-owner", {
       match: JSON.stringify(match),
       messages: messages,

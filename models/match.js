@@ -6,10 +6,11 @@ export default {
   get: async (id) => {
     return await db.oneOrNone('SELECT * FROM "Match" WHERE "id" = $1', [id]);
   },
-  getTimeOut: async (match_id) => {
+  getTimeOut: async () => {
+    const current_time = new Date().getTime();
     return await db.any(
-      'SELECT * FROM "Match" WHERE "state" == $1 AND "move_time"',
-      ["start"]
+      'SELECT * FROM "Match" WHERE "state" = $1 AND "move_time" + "max_time" < $2',
+      ["start", current_time]
     );
   },
   getByUser: async (id) => {
@@ -24,7 +25,7 @@ export default {
       [
         match.user_id,
         match.owner_name,
-        match.max_time,
+        parseInt(match.max_time) * 1000,
         "waiting",
         match.user_id,
         [
@@ -54,14 +55,22 @@ export default {
   },
   getPartner: async (match_id, user_id) => {
     return await db.oneOrNone(
-      'SELECT * FROM "Players" WHERE "match_id" = $1 AND AND "user_id" != $2',
+      'SELECT * FROM "Players" WHERE "match_id" = $1 AND "user_id" != $2',
       [match_id, user_id]
     );
   },
-  updateMove: async (match_id, i, j, value, current_move, move_time) => {
+  updateCell: async (match_id, i, j, value) => {
+    await db.none('UPDATE "Match" SET cell[$1][$2] = $3 WHERE "id"=$4', [
+      i,
+      j,
+      value,
+      match_id,
+    ]);
+  },
+  updateMove: async (match_id, current_move, move_time) => {
     await db.none(
-      'UPDATE "Match" SET cell[$1][$2] = $3, current_move =$4, move_time =$5 WHERE "id"=$6',
-      [i, j, value, current_move, move_time, match_id]
+      'UPDATE "Match" SET "current_move"=$1, "move_time"=$2 WHERE "id"=$3',
+      [current_move, move_time, match_id]
     );
   },
   updateState: async (match_id, state) => {

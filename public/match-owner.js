@@ -7,7 +7,6 @@ function showStartRequest(user) {
 let match;
 let socket;
 function initMatch(_match) {
-  console.log(_match);
   document.addEventListener("DOMContentLoaded", async (event) => {
     match = _match;
     const online = await onlineAgent;
@@ -20,11 +19,14 @@ function initMatch(_match) {
     const confirm = document.getElementById("confirm-toast");
     const confirmButton = document.getElementById("confirm-button");
     const confirmClose = document.getElementById("confirm-close");
-    confirmButton.addEventListener("click", (e) => {
-      const request = confirm.userRequest;
-      window.location.href = "/start?user=" + request.id;
-    });
     confirmClose.addEventListener("click", (e) => {
+      fetch("/match/decline", {
+        method: "POST",
+      })
+        .then((response) => {})
+        .catch((error) => {
+          console.error(error);
+        });
       confirm.classList.remove("show");
     });
   });

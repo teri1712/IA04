@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from "uuid";
+import messageDb from "../../models/message.js";
 import matchDb from "../../models/match.js";
 import online_broker from "./online-broker";
 const active_matches = new Map();
@@ -48,7 +48,7 @@ function checkDiag(cells) {
 }
 
 function draw(cells) {}
-
+const active_games = new Map();
 const match_broker = {
   open: async (player, config) => {
     if (await matchDb.getByUser(player.id)) {
@@ -67,24 +67,14 @@ const match_broker = {
   },
   start: async (owner, player) => {
     const match = await matchDb.getByUser(owner.id);
-    player.role = "player";
     await matchDb.addPlayer(match.id, player);
+    await matchDb.updateState(match.id, "start");
+    active_games.set(match.user_id, [owner, player]);
   },
-  join: async (player, id) => {
-    const match = await matchDb.get(id);
-    const players = await matchDb.getPlayers(id);
-    await matchDb.addPlayer(match.id, player);
-    player.role = "viewer";
-    for (let player of players) {
-      const socket = online_broker.getUser(player.user_id);
-      if (socket) {
-        socket.emit("game", {
-          type: "join",
-          id: id,
-          first_player: match.first_player,
-          second_player: match.second_player,
-        });
-      }
+  join: (player, user_id) => {
+    const match = active_games.get(user_id);
+    if (match) {
+      match.push(player);
     }
   },
   move: async (match_id, player_id, i, j) => {
@@ -93,22 +83,30 @@ const match_broker = {
 
     const value = current_move == match.user_id ? 1 : 2;
     match.cells[i][j] = value;
-    match.current_move = value == 1 ? partner.user_id : match.user_id;
+    match.current_move = value == 1 ? player_id : match.user_id;
+    const current_time = new Date().getTime();
+    await matchDb.updateMove(
+      match.id,
+      i,
+      j,
+      value,
+      match.current_move,
+      current_time
+    );
 
-    await matchDb.updateMove(match.id, i, j, value, {
-      current_move: match.current_move,
-      time: new Date().getTime(),
-    });
+    const the_match = active_games.get(match.user_id);
+    if (!the_match) return;
+    the_match.move_time = current_time;
 
-    for (let player of await matchDb.getPlayers(match.id)) {
-      const socket = online_broker.getUser(player.user_id);
+    for (let player of the_match) {
+      const socket = online_broker.getUser(player.id);
       if (socket) {
         socket.emit("game", {
           id: match_id,
           type: "move",
           i: i,
           j: j,
-          value: value == 1 ? "X" : "O",
+          value: value,
         });
       }
     }
@@ -119,34 +117,62 @@ const match_broker = {
         checkDiag(match.cells)
       )
     ) {
-      end(match, "win");
+      this.end(match_id, "win");
     } else if (draw(match.cells)) {
-      end(match, "draw");
+      this.end(match_id, "draw");
     } else {
       setTimeout(async () => {
-        this.timeOutCheck(match.id);
-      }, match.max_time * 1000);
+        const current_time = new Date().getTime();
+        if (the_match.end) {
+          return;
+        }
+        if (current_time - match.move_time >= match.max_time) {
+          this.end(match_id, "win");
+        }
+      }, match.max_time * 1000 + 1000);
     }
   },
-  timeOutCheck: async (id) => {
-    const current_time = new Date().getTime();
-    const match = await matchDb.get(id);
-    if (match.state != "start") {
-      return;
-    }
-    if (current_time - match.move_time >= match.max_time) {
-      this.end(match, "win");
-    }
-  },
-  end: async (match, type) => {
+  end: async (match_id, type) => {
+    const the_match = active_games.get(match.user_id);
+    the_match.end = true;
+    active_games.delete(match.user_id);
+
+    const match = await matchDb.get(match_id);
+    const partner = await matchDb.getPartner(match_id, match.user_id);
+
     const current_move = match.current_move;
-    for (let player of await matchDb.getPlayers(match.id)) {
+    for (let player of await the_match) {
       const socket = online_broker.getUser(player.user_id);
       if (socket) {
         socket.emit("game", {
           id: match.id,
           type: "end",
-          winner: type == "draw" ? undefined : current_move,
+          winner:
+            type == "draw"
+              ? undefined
+              : current_move == partner.user_id
+              ? match.user_id
+              : partner.user_id,
+        });
+      }
+    }
+  },
+  message: async (user_id, from, message) => {
+    const the_match = active_games.get(user_id);
+    const match = matchDb.getByUser(user_id);
+    if (!match) {
+      throw new Error("Trận đáu không tồn tại.");
+    }
+    if (!the_match) {
+      throw new Error("Trận đáu đã kết thúc.");
+    }
+    messageDb.createMatchMessage(from, message, match.id);
+    for (let player of the_match) {
+      const socket = online_broker.getUser(player.id);
+      if (socket) {
+        socket.emit("message", {
+          type: "match",
+          content: message,
         });
       }
     }

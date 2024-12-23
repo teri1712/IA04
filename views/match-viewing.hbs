@@ -14,22 +14,37 @@
   </nav>
   <div class="mt-3 d-flex flex-column align-items-center flex-grow-1 h-75">
     <h1>
-      Welcome to Game of
+      Welcome to Game between
       {{owner.name}}
+      and
+      {{partner.name}}
     </h1>
     <div class="container rounded border bg-light p-2 flex-grow-1">
       <div class="container">
         <div class="row">
-          <div id="board" class="col-6 board">
-            <div class="cell"></div>
-            <div class="cell"></div>
-            <div class="cell"></div>
-            <div class="cell"></div>
-            <div class="cell"></div>
-            <div class="cell"></div>
-            <div class="cell"></div>
-            <div class="cell"></div>
-            <div class="cell"></div>
+          <div class="col-6 d-flex flex-column align-items-center">
+            <div
+              id="count-down"
+              class="d-flex align-items-center justify-content-center"
+            >
+            </div>
+            <div
+              id="match-result"
+              class="d-flex align-items-center justify-content-center"
+              style="color: red;"
+            >
+            </div>
+            <div id="board" class="board">
+              <div class="cell"></div>
+              <div class="cell"></div>
+              <div class="cell"></div>
+              <div class="cell"></div>
+              <div class="cell"></div>
+              <div class="cell"></div>
+              <div class="cell"></div>
+              <div class="cell"></div>
+              <div class="cell"></div>
+            </div>
           </div>
           <div id="message-container" class="col-3">
             {{#each messages}}
@@ -44,26 +59,9 @@
     </div>
   </div>
 </div>
-{{#if isOWner}}
-  <div
-    id="confirm-toast"
-    class="toast"
-    role="alert"
-    aria-live="assertive"
-    aria-atomic="true"
-  >
-    <div class="toast-body">
-      Confirm start game request
-      <div class="mt-2 pt-2 border-top">
-        <button type="button" class="btn btn-primary btn-sm">Ok</button>
-        <button
-          type="button"
-          class="btn btn-secondary btn-sm"
-          data-bs-dismiss="toast"
-        >Close</button>
-      </div>
-    </div>
-  </div>
-{{/if}}
-
-<script src="/tictac.js"></script>
+<script src="/match-notify.js"></script>
+<script src="/match-messaging.js"></script>
+<script src="/match-viewing.js"></script>
+<script>
+  matchInit({{viewer}},{{match}});
+</script>

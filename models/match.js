@@ -7,19 +7,21 @@ export default {
     return await db.oneOrNone('SELECT * FROM "Match" WHERE "id" = $1', [id]);
   },
   getByUser: async (id) => {
-    return await db.oneOrNone('SELECT * FROM "Match" WHERE "user_id" = $1', [
-      id,
-    ]);
+    return await db.oneOrNone(
+      'SELECT * FROM "Match" WHERE "user_id" = $1 AND state = "waiting"',
+      [id]
+    );
   },
   create: async (match) => {
     return await db.none(
-      'INSERT INTO "Match"("user_id", "width","height","max_time","state","cells") VALUES ($1, $2, $3, $4, $5, $6)',
+      'INSERT INTO "Match"("user_id", "width","height","max_time","state","current_move","cells") VALUES ($1, $2, $3, $4, $5, $6, $7)',
       [
         match.user_id,
         match.width,
         match.height,
         "waiting",
         match.max_time,
+        match.user_id,
         [
           [0, 0, 0],
           [0, 0, 0],
@@ -46,16 +48,16 @@ export default {
       [match_id, user_id]
     );
   },
-  start: async (match_id, state) => {
-    await db.none('UPDATE "Match" SET "state"=$1 WHERE "id"=$2', [
+  updateMove: async (match_id, i, j, value, current_move, move_time) => {
+    await db.none(
+      'UPDATE "Match" SET cell[$1][$2] = $3, current_move =$4, move_time =$5 WHERE "id"=$6',
+      [i, j, value, current_move, move_time, match_id]
+    );
+  },
+  updateState: async (match_id, state) => {
+    await db.none('UPDATE "Match" SET "state" =$1 WHERE "id"=$2', [
       state,
       match_id,
     ]);
-  },
-  updateMove: async (match_id, i, j, value, move) => {
-    await db.none(
-      'UPDATE "Match" SET cell[$1][$2] = $3, current_move =$4, move_time =$5 WHERE "id"=$6',
-      [i, j, value, move.current_move, move.time, match_id]
-    );
   },
 };

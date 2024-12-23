@@ -1,4 +1,5 @@
 import matchDb from "../../models/match.js";
+import match_broker from "./match-broker.js";
 import online_broker from "./online-broker.js";
 const message_broker = {
   onMessage: (message) => {
@@ -8,19 +9,6 @@ const message_broker = {
         type: "global",
       });
     }
-  },
-  onMatchMessage: async (match_id, message) => {
-    const players = await matchDb.getPlayers(match_id);
-    for (let player of players) {
-      const user = online_broker.getUser(player.user_id);
-      if (user) {
-        user.socket.emit("message", {
-          type: "match",
-          message: message,
-        });
-      }
-    }
-    return true;
   },
 };
 

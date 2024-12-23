@@ -28,8 +28,8 @@ export default {
   },
   createMatchMessage: async (sender, content, match_id) => {
     return await db.none(
-      'INSERT INTO "MatchMessages"("user_id","user_name", "content","at_time","match_id") VALUES ($1, $2, $3, $4, $5);',
-      [sender, sender.name, content, new Date().getTime(), match_id]
+      'INSERT INTO "MatchMessages"("user_name", "content","at_time","match_id") VALUES ($1, $2, $3, $4);',
+      [sender, content, new Date().getTime(), match_id]
     );
   },
 };

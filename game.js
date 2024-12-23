@@ -97,8 +97,8 @@ app.get(
   passport.authenticate("oauth2-strategy", { failureRedirect: "/login" }),
   (req, res) => {
     let max_minutes = parseInt(req.query.max_minutes);
-    req.session.cookie.expires = new Date(Date.now() + max_minutes * 1000);
-    req.session.cookie.maxAge = max_minutes * 1000;
+    req.session.cookie.expires = new Date(Date.now() + max_minutes * 60 * 1000);
+    req.session.cookie.maxAge = max_minutes * 60 * 1000;
 
     res.redirect("/");
   }

@@ -11,7 +11,7 @@ messageRouter.get("/chat", async (req, res) => {
   const user = req.user;
   const messages = await messageDb.getAll(-1, current_time);
   for (let message of messages) {
-    message.isMine = message.from.id == user.id;
+    message.isMine = message.user_id == user.id;
   }
   res.render("chat", {
     user: JSON.stringify(user),
@@ -23,7 +23,11 @@ messageRouter.get("/chat", async (req, res) => {
 
 messageRouter.post("/message", async (req, res) => {
   await messageDb.create(req.user.id, req.body);
-  message_broker.onMessage(req.body);
+  const message = {
+    content: req.body,
+    from: req.user,
+  };
+  message_broker.onMessage(message);
   return res.status(200);
 });
 

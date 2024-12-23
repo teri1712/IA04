@@ -15,7 +15,7 @@ function handleCell(e) {
     }
   }
   if (!index) return;
-  const i = index / 3;
+  const i = Math.floor(index / 3);
   const j = index % 3;
 
   if (match.cells[i][j] != "") {

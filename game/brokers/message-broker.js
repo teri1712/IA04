@@ -4,6 +4,7 @@ import online_broker from "./online-broker.js";
 const message_broker = {
   onMessage: (message) => {
     for (let user of online_broker.getAllUser()) {
+      console.log("niceeeeeeeeee");
       user.socket.emit("message", {
         message: message,
         type: "global",

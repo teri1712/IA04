@@ -13,7 +13,7 @@ const online_broker = {
 
   getUser: (id) => {
     const user = online_users.get(id);
-    return user ? user.socket : undefined;
+    return user && user.socket ? user.socket : undefined;
   },
 };
 

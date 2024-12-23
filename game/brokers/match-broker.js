@@ -69,6 +69,7 @@ const match_broker = {
     await matchDb.addPlayer(match.id, player);
     await matchDb.updateState(match.id, "start");
     await matchDb.updateMove(match.id, match.user_id, new Date().getTime());
+
     active_viewers.set(match.user_id, []);
   },
   join: (player, user_id) => {
@@ -169,34 +170,40 @@ const match_broker = {
     }
   },
   message: async (user_id, from, message) => {
-    const the_match = active_viewers.get(user_id);
-    const match = matchDb.getByUser(user_id);
-    if (!match) {
-      throw new Error("Trận đáu không tồn tại.");
+    const viewers = active_viewers.get(user_id);
+    const match = await matchDb.getByUser(user_id);
+    await messageDb.createMatchMessage(from, message, match.id);
+    const emission = {
+      type: "match",
+      message: {
+        content: message,
+        from: from,
+      },
+    };
+
+    const players = await matchDb.getPlayers(match.id);
+    let socket = online_broker.getUser(players[0].id);
+    if (socket) {
+      socket.emit("message", emission);
     }
-    if (!the_match) {
-      throw new Error("Trận đáu đã kết thúc.");
+    socket = online_broker.getUser(players[1].id);
+    if (socket) {
+      socket.emit("message", emission);
     }
-    messageDb.createMatchMessage(from, message, match.id);
-    for (let player of the_match) {
-      const socket = online_broker.getUser(player.id);
+    for (let viewer of viewers) {
+      const socket = online_broker.getUser(viewer.id);
       if (socket) {
-        socket.emit("message", {
-          type: "match",
-          message: {
-            content: message,
-            from: from,
-          },
-        });
+        socket.emit("message", emission);
       }
     }
   },
 };
 
-setTimeout(async () => {
+setInterval(async () => {
   const matches = await matchDb.getTimeOut();
   for (let match of matches) {
     match_broker.end(match, "win");
+    console.log("enddddddddddddddddddddddddddddd");
   }
 }, 1000);
 export default match_broker;

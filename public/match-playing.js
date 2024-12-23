@@ -15,9 +15,9 @@ function handleCell(e) {
     }
   }
   if (!index) return;
-
   const i = index / 3;
   const j = index % 3;
+
   if (match.cells[i][j] != "") {
     return;
   }
@@ -49,22 +49,29 @@ function matchInit(_player, _match) {
     match.player = _player;
     const online = await onlineAgent;
     socket = online.socket;
-
-    countDown(Math.floor(new Date().getTime() - match.move_time));
+    console.log(new Date().getTime());
+    console.log(match.move_time);
+    console.log(match.max_time);
+    countDown(
+      match.current_move,
+      Math.floor(
+        parseInt(match.move_time) + match.max_time - new Date().getTime()
+      )
+    );
     socket.on("game", function (data) {
       if (match.id == data.id) {
         if (type == "move") {
           const i = data.i;
           const j = data.j;
           const value = data.value;
-
           match.cells[i][j] = value;
           match.current_move = data.current_move;
 
           updateCells();
-          countDown();
+          countDown(match.current_move, match.move_time);
         } else if (type == "end") {
           match.state = "end";
+          console.log("helllo");
 
           const cd = document.getElementById("count-down");
           cd.style.display = "none";

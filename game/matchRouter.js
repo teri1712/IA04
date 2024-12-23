@@ -75,6 +75,7 @@ matchRouter.get("/", async (req, res) => {
   const matches = await matchDb.getAllMatches();
   for (let match of matches) {
     match.available = match.state != "end";
+    match.max_time = parseInt(match.max_time) / 1000;
     match.start = match.state == "start";
   }
   res.render("match", {

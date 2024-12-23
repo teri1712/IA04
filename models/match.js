@@ -21,7 +21,7 @@ export default {
   },
   create: async (match) => {
     return await db.none(
-      'INSERT INTO "Match"("user_id","owner_name", "max_time","state","current_move","cells") VALUES ($1, $2, $3, $4, $5, $6)',
+      'INSERT INTO "Match"("user_id","owner_name", "max_time", "state","current_move","cells") VALUES ($1, $2, $3, $4, $5, $6)',
       [
         match.user_id,
         match.owner_name,

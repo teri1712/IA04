@@ -9,7 +9,7 @@ const messageRouter = Router();
 messageRouter.get("/chat", async (req, res) => {
   const current_time = new Date().getTime();
   const user = req.user;
-  const messages = await messageDb.getAll(-1, to);
+  const messages = await messageDb.getAll(-1, current_time);
   for (let message of messages) {
     message.isMine = message.from.id == user.id;
   }
@@ -31,9 +31,7 @@ messageRouter.post("/match-message", async (req, res) => {
   const user = req.user;
   const { user_id, message } = req.body;
   await match_broker.message(user_id, user.name, message);
-  if (message_broker.onMatchMessage(match_id, message)) {
-    return res.status(200);
-  }
+  return res.status(200);
 });
 
 export default messageRouter;

@@ -171,11 +171,14 @@ io.on("connection", (socket) => {
 
   socket.on("game", (msg) => {
     const type = msg.type;
-    const match_id = msg.match_id;
-    if (type == "start") {
-      match_broker.start(match_id);
-    } else if (type == "move") {
-      match_broker.move(match_id);
+    if (type == "move") {
+      const move = msg.move;
+      match_broker.move(
+        move.match_id,
+        move.player_id,
+        parseInt(move.i),
+        parseInt(move.j)
+      );
     }
   });
   socket.on("disconnect", () => {

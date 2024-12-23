@@ -1,21 +1,35 @@
 import db from "../db.js";
 import userDb from "./user.js";
 export default {
-  getByTime: async (from, to) => {
+  getAll: async () => {
     const messages = await db.any(
-      'SELECT * FROM "Messages" WHERE "at_time" BETWEEN $1 AND $2 ORDER BY "at_time" ASC;',
-      [from, to]
+      'SELECT * FROM "Messages" ORDER BY "at_time" ASC;'
     );
     for (let message of messages) {
-      message.from = await userDb.getById(message.user_id);
+      message.from = message.user_name;
     }
     return messages;
   },
-
+  getAllMatchMessages: async (match_id) => {
+    const messages = await db.any(
+      'SELECT * FROM "MatchMessages" WHERE "match_id"=$1 ORDER BY "at_time" ASC;',
+      [match_id]
+    );
+    for (let message of messages) {
+      message.from = message.user_name;
+    }
+    return messages;
+  },
   create: async (sender, content) => {
     return await db.none(
-      'INSERT INTO "Messages"("user_id", "content","at_time") VALUES ($1, $2, $3);',
-      [sender, content, new Date().getTime()]
+      'INSERT INTO "Messages"("user_id","user_name", "content","at_time") VALUES ($1, $2, $3, $4);',
+      [sender, sender.name, content, new Date().getTime()]
+    );
+  },
+  createMatchMessage: async (sender, content, match_id) => {
+    return await db.none(
+      'INSERT INTO "MatchMessages"("user_id","user_name", "content","at_time","match_id") VALUES ($1, $2, $3, $4, $5);',
+      [sender, sender.name, content, new Date().getTime(), match_id]
     );
   },
 };

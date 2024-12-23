@@ -1,6 +1,6 @@
 import messageDb from "../../models/message.js";
 import matchDb from "../../models/match.js";
-import online_broker from "./online-broker";
+import online_broker from "./online-broker.js";
 const active_matches = new Map();
 
 function checkRow(cells) {
@@ -48,68 +48,79 @@ function checkDiag(cells) {
 }
 
 function draw(cells) {}
-const active_games = new Map();
+const active_viewers = new Map();
 const match_broker = {
-  open: async (player, config) => {
+  open: async (player, max_time) => {
     if (await matchDb.getByUser(player.id)) {
-      throw new Error("You already have a match");
+      throw new Error("Bạn đã có trận đáu rồi");
     }
-    let match = {};
-    match.user_id = player.id;
-    match.width = config.width;
-    match.height = config.height;
-    match.max_time = config.max_time;
-    await matchDb.create();
-    match = await matchDb.getByUser(player.id);
+    await matchDb.create({
+      user_id: player.id,
+      owner_name: player.name,
+      max_time: max_time,
+    });
+    const match = await matchDb.getByUser(player.id);
 
-    player.role = "player";
     await matchDb.addPlayer(match.id, player);
   },
   start: async (owner, player) => {
     const match = await matchDb.getByUser(owner.id);
     await matchDb.addPlayer(match.id, player);
     await matchDb.updateState(match.id, "start");
-    active_games.set(match.user_id, [owner, player]);
+    active_viewers.set(match.user_id, []);
   },
   join: (player, user_id) => {
-    const match = active_games.get(user_id);
-    if (match) {
-      match.push(player);
+    let viewers = active_viewers.get(user_id);
+    if (!viewers) {
+      viewers = [];
+      active_viewers.set(user_id, viewers);
     }
+    viewers.push(player);
   },
   move: async (match_id, player_id, i, j) => {
     const match = await matchDb.get(match_id);
+    const players = await matchDb.getPlayers(match_id);
     const current_move = match.current_move;
 
     const value = current_move == match.user_id ? 1 : 2;
     match.cells[i][j] = value;
     match.current_move = value == 1 ? player_id : match.user_id;
-    const current_time = new Date().getTime();
+
     await matchDb.updateMove(
       match.id,
       i,
       j,
       value,
       match.current_move,
-      current_time
+      new Date().getTime()
     );
 
-    const the_match = active_games.get(match.user_id);
-    if (!the_match) return;
-    the_match.move_time = current_time;
+    const emission = {
+      id: match_id,
+      type: "move",
+      i: i,
+      j: j,
+      value: value,
+    };
 
-    for (let player of the_match) {
-      const socket = online_broker.getUser(player.id);
+    let socket = online_broker.getUser(players[0].user_id);
+    if (socket) {
+      socket.emit("game", emission);
+    }
+    socket = online_broker.getUser(players[1].user_id);
+    if (socket) {
+      socket.emit("game", emission);
+    }
+
+    let viewers = active_viewers.get(match.user_id);
+    if (!viewers) viewers = [];
+    for (let viewer of viewers) {
+      socket = online_broker.getUser(viewer.id);
       if (socket) {
-        socket.emit("game", {
-          id: match_id,
-          type: "move",
-          i: i,
-          j: j,
-          value: value,
-        });
+        socket.emit("game", emission);
       }
     }
+
     if (
       !(
         checkRow(match.cells) ||
@@ -120,22 +131,12 @@ const match_broker = {
       this.end(match_id, "win");
     } else if (draw(match.cells)) {
       this.end(match_id, "draw");
-    } else {
-      setTimeout(async () => {
-        const current_time = new Date().getTime();
-        if (the_match.end) {
-          return;
-        }
-        if (current_time - match.move_time >= match.max_time) {
-          this.end(match_id, "win");
-        }
-      }, match.max_time * 1000 + 1000);
     }
   },
   end: async (match_id, type) => {
-    const the_match = active_games.get(match.user_id);
+    const the_match = active_viewers.get(match.user_id);
     the_match.end = true;
-    active_games.delete(match.user_id);
+    active_viewers.delete(match.user_id);
 
     const match = await matchDb.get(match_id);
     const partner = await matchDb.getPartner(match_id, match.user_id);
@@ -158,7 +159,7 @@ const match_broker = {
     }
   },
   message: async (user_id, from, message) => {
-    const the_match = active_games.get(user_id);
+    const the_match = active_viewers.get(user_id);
     const match = matchDb.getByUser(user_id);
     if (!match) {
       throw new Error("Trận đáu không tồn tại.");
@@ -172,10 +173,23 @@ const match_broker = {
       if (socket) {
         socket.emit("message", {
           type: "match",
-          content: message,
+          message: {
+            content: message,
+            from: from,
+          },
         });
       }
     }
   },
 };
+
+setTimeout(async () => {
+  const current_time = new Date().getTime();
+  if (viewers.end) {
+    return;
+  }
+  if (current_time - match.move_time >= match.max_time) {
+    this.end(match_id, "win");
+  }
+}, 1000);
 export default match_broker;

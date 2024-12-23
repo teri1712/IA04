@@ -13,7 +13,8 @@ matchRouter.get("/join", async (req, res) => {
   match_broker.join(user, user_id);
   res.redirect("/match/user?id=" + user_id);
 });
-matchRouter.post("/request", async (req, res) => {
+
+matchRouter.get("/request", async (req, res) => {
   const user = req.user;
   const owner_id = req.query.user_id;
   const match = await matchDb.getByUser(owner_id);
@@ -35,6 +36,7 @@ matchRouter.post("/request", async (req, res) => {
   res.request_user = user;
   requestCache.set(owner_id, res);
 });
+
 matchRouter.post("/decline", async (req, res) => {
   const user = req.user;
   const cache = requestCache.get(user.id);
@@ -68,31 +70,38 @@ matchRouter.post("/move", async (req, res) => {
 });
 
 matchRouter.get("/", async (req, res) => {
-  const matches = matchDb.getAllMatches();
+  const user = req.user;
+  const matches = await matchDb.getAllMatches();
   for (let match of matches) {
-    match.players_length = match.players.size();
+    match.available = match.state != "end";
+    match.start = match.state == "start";
   }
-  res.render("match", { matches: matches });
+  res.render("match", {
+    matches: matches,
+    has_match: await matchDb.getByUser(user.id),
+    user: user,
+  });
 });
 
 matchRouter.get("/user", async (req, res) => {
   const user = req.user;
   const match = await matchDb.getByUser(req.query.id);
   const owner = await matchDb.getPlayer(match.id, match.user_id);
+  const messages = await messageDb.getAllMatchMessages(match.id);
 
   if (match.state == "waiting") {
     if (match.user_id != user.id) return res.sendStatus(400);
+    console.log(JSON.stringify(match));
     res.render("match-owner", {
-      match: match,
+      match: JSON.stringify(match),
       messages: messages,
       owner: owner,
     });
   } else {
     const partner = await matchDb.getPartner(match.id, match.user_id);
-    const messages = await messageDb.getAllMatchMessages(match.id);
     if (partner.user_id == user.id || match.user_id == user.id) {
       res.render("match-playing", {
-        match: match,
+        match: JSON.stringify(match),
         player: JSON.stringify(user),
         isEnd: match.state == "end",
         messages: messages,
@@ -110,4 +119,17 @@ matchRouter.get("/user", async (req, res) => {
     }
   }
 });
+
+matchRouter.get("/create", async (req, res) => {
+  const user = req.user;
+  res.render("match-create", { user: user });
+});
+
+matchRouter.post("/create", async (req, res) => {
+  const user = req.user;
+  const max_time = req.body.max_time;
+  await match_broker.open(user, max_time);
+  res.redirect("/match/user?id=" + user.id);
+});
+
 export default matchRouter;

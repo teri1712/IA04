@@ -6,10 +6,12 @@ function showStartRequest(user) {
 }
 let match;
 let socket;
-function init(_user, _match) {
-  document.addEventListener("DOMContentLoaded", (event) => {
+function initMatch(_match) {
+  console.log(_match);
+  document.addEventListener("DOMContentLoaded", async (event) => {
     match = _match;
-    socket = io({ query: { user: _user } });
+    const online = await onlineAgent;
+    socket = online.socket;
     socket.on("game", function (data) {
       if (match.id == data.id && data.type == "start") {
         showStartRequest(data.user);

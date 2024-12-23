@@ -3,7 +3,7 @@ function initMessaging(socket, match) {
     if (data.type == "match" && data.match_id == match.id) {
       const messageContiner = document.getElementById("message-container");
       const name = document.createElement("strong");
-      name.textContent = data.message.user_name;
+      name.textContent = data.message.from;
       const message = document.createElement("p");
       message.textContent = data.message.content;
 

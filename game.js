@@ -11,9 +11,11 @@ import https from "https";
 import OAuth2Strategy from "./game/custom-strategy.js";
 import online_broker from "./game/brokers/online-broker.js";
 import messageRouter from "./game/messageRouter.js";
-import socketIo from "socket.io";
+import { Server } from "socket.io";
 import message_broker from "./game/brokers/message-broker.js";
 import match_broker from "./game/brokers/match-broker.js";
+import matchDb from "./models/match.js";
+import matchRouter from "./game/matchRouter.js";
 
 const app = express();
 const PORT = process.env.GAME_PORT;
@@ -87,9 +89,6 @@ app.use((req, res, next) => {
     res.redirect("/login");
     return;
   }
-  if (req.isAuthenticated()) {
-    online_broker.onOnline(req.user);
-  }
   next();
 });
 
@@ -100,7 +99,6 @@ app.get(
     let max_minutes = parseInt(req.query.max_minutes);
     req.session.cookie.expires = new Date(Date.now() + max_minutes * 1000);
     req.session.cookie.maxAge = max_minutes * 1000;
-    online_broker.onOnline(req.user);
 
     res.redirect("/");
   }
@@ -128,13 +126,21 @@ app.post("/logout", (req, res) => {
   });
 });
 
-app.get("/", (req, res) => {
+app.get("/", async (req, res) => {
+  const user = req.user;
   res.render("home", {
+    user: user,
+    has_match: await matchDb.getByUser(user.id),
     users: online_broker.getAllUser(),
   });
 });
 
+app.get("/user-info", (req, res) => {
+  res.json(req.user);
+});
+
 app.use("/", messageRouter);
+app.use("/match", matchRouter);
 // https
 const options = {
   key: fs.readFileSync(process.env.SSL_SERVER_KEY),
@@ -146,15 +152,21 @@ server.listen(PORT, () => {
   console.log(`Server running on https://localhost:${PORT}`);
 });
 
-const io = socketIo(server);
+const io = new Server(server);
 io.use((socket, next) => {
-  const user = socket.handshake.query.user;
+  const query = socket.handshake.query;
+  const user = {
+    id: query.id,
+    name: query.name,
+    dob: query.dob,
+    email: query.email,
+  };
   socket.user = user;
   next();
 });
 io.on("connection", (socket) => {
-  console.log("a user connected:", socket.user);
   const user = socket.user;
+  console.log("a user connected:", user.name);
   online_broker.onOnline(user, socket);
 
   socket.on("game", (msg) => {

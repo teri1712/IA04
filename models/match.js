@@ -6,21 +6,26 @@ export default {
   get: async (id) => {
     return await db.oneOrNone('SELECT * FROM "Match" WHERE "id" = $1', [id]);
   },
+  getTimeOut: async (match_id) => {
+    return await db.any(
+      'SELECT * FROM "Match" WHERE "state" == $1 AND "move_time"',
+      ["start"]
+    );
+  },
   getByUser: async (id) => {
     return await db.oneOrNone(
-      'SELECT * FROM "Match" WHERE "user_id" = $1 AND state = "waiting"',
-      [id]
+      'SELECT * FROM "Match" WHERE "user_id" = $1 AND "state" != $2',
+      [id, "end"]
     );
   },
   create: async (match) => {
     return await db.none(
-      'INSERT INTO "Match"("user_id", "width","height","max_time","state","current_move","cells") VALUES ($1, $2, $3, $4, $5, $6, $7)',
+      'INSERT INTO "Match"("user_id","owner_name", "max_time","state","current_move","cells") VALUES ($1, $2, $3, $4, $5, $6)',
       [
         match.user_id,
-        match.width,
-        match.height,
-        "waiting",
+        match.owner_name,
         match.max_time,
+        "waiting",
         match.user_id,
         [
           [0, 0, 0],
@@ -32,7 +37,7 @@ export default {
   },
   addPlayer: async (match_id, player) => {
     return await db.none(
-      'INSERT INTO "Players"("user_id", "match_id,"user_name") VALUES ($1, $2, $3)',
+      'INSERT INTO "Players"("user_id", "match_id", "name") VALUES ($1, $2, $3)',
       [player.id, match_id, player.name]
     );
   },
@@ -42,9 +47,14 @@ export default {
       [match_id, user_id]
     );
   },
+  getPlayers: async (match_id) => {
+    return await db.any('SELECT * FROM "Players" WHERE "match_id" = $1', [
+      match_id,
+    ]);
+  },
   getPartner: async (match_id, user_id) => {
     return await db.oneOrNone(
-      'SELECT * FROM "Players" WHERE "match_id" = $1 AND AND "user_id" <> $2',
+      'SELECT * FROM "Players" WHERE "match_id" = $1 AND AND "user_id" != $2',
       [match_id, user_id]
     );
   },

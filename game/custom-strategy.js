@@ -60,7 +60,6 @@ class OAuth2Strategy extends Strategy {
       })
       .then((response) => {
         const profile = response.data;
-        console.log(profile);
         callback(null, profile);
       })
       .catch((error) => {

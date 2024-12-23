@@ -8,6 +8,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  border: gray 1px solid;
 
   width: 150px;
   height: 150px;

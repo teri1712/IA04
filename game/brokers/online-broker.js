@@ -8,7 +8,7 @@ const online_broker = {
     online_users.delete(user.id);
   },
   getAllUser: () => {
-    return Array.from(online_users.values()).map((value) => value.user);
+    return Array.from(online_users.values());
   },
 
   getUser: (id) => {

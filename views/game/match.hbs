@@ -1,3 +1,4 @@
+<script src="/online.js"></script>
 <div class="p-2">
   <nav
     class="w-100 navbar navbar-expand-lg navbar-light d-flex flex-row rounded border p-2 align-items-center"
@@ -6,6 +7,11 @@
       <a class="nav-link" href="/">Online users</a>
       <a class="nav-link" href="/chat">Chat</a>
       <a class="nav-link disabled" href="/match">Matches</a>
+      {{#if has_match}}
+        <a class="nav-link" href="/match/user?id={{user.id}}">My Match</a>
+      {{else}}
+        <a class="nav-link" href="/match/create">Create match</a>
+      {{/if}}
     </div>
     <form action="/logout" method="post" class="m-0">
       <button type="submit" class="btn btn-warning">Logout</button>
@@ -19,17 +25,27 @@
   gap: 10px;"
   >
     {{#each matches}}
-      <div class="card g-col-4">
-        <div class="card-body">
-          <h5 class="card-title">Được tạo bởi {{owner.name}}</h5>
-          <h7 class="card-title">Số người tham gia: {{players_length}}</h7>
-          <p class="card-title">Trạng thái: {{state}}</p>
-          <a href="/match?id={{id}}" class="btn btn-warning">Join</a>
+      {{#if available}}
+        <div class="card g-col-4">
+          <div class="card-body">
+            <h5 class="card-title">Được tạo bởi người chơi {{owner_name}}</h5>
+            <h7 class="card-title">Số thời gian tối đa: {{max_time}}</h7>
+            <p class="card-title">Trạng thái: {{state}}</p>
+            {{#if start}}
+              <a
+                href="/match/join?user_id={{user_id}}"
+                class="btn btn-warning"
+              >Join</a>
+            {{else}}
+              <a
+                href="/match/request?user_id={{user_id}}"
+                class="btn btn-warning"
+              >Solo</a>
+            {{/if}}
+          </div>
         </div>
-      </div>
+      {{/if}}
     {{/each}}
 
   </div>
 </div>
-
-<script src="/ping.js"></script>

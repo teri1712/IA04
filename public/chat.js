@@ -1,5 +1,4 @@
-function sendMessage() {
-  const message = document.getElementById("messageField").value;
+function sendMessage(message, from) {
   if (message.length == 0) {
     return;
   }
@@ -10,7 +9,7 @@ function sendMessage() {
   rightMessage.className = "right-message m-2";
 
   const rightMessageHeader = document.createElement("h4");
-  rightMessageHeader.textContent = window.userName;
+  rightMessageHeader.textContent = from;
   rightMessage.appendChild(rightMessageHeader);
 
   const rightMessageParagraph = document.createElement("p");
@@ -35,17 +34,23 @@ function sendMessage() {
       window.alert("Network error" + error);
     });
 }
-let me;
-function startChat(user) {
+function startChat() {
   me = user;
   current_time = time;
-  document.addEventListener("DOMContentLoaded", (event) => {
-    const socket = io({ query: { user: user } });
+  document.addEventListener("DOMContentLoaded", async (event) => {
+    const online = await onlineAgent;
+    const socket = online.socket;
     socket.on("message", function (data) {
       if (data.type == "global") {
         handleMessage(data.message);
       }
     });
+    document
+      .getElementById("send-message")
+      .addEventListener("click", (event) => {
+        const message = document.getElementById("messageField").value;
+        sendMessage(message, user.name);
+      });
   });
 }
 
@@ -69,3 +74,5 @@ function handleMessage(message) {
 
   container.appendChild(leftMessage);
 }
+
+startChat();

@@ -43,11 +43,12 @@ function updateCells() {
   }
 }
 function matchInit(_player, _match) {
-  document.addEventListener("DOMContentLoaded", (event) => {
+  document.addEventListener("DOMContentLoaded", async (event) => {
     const board = document.getElementById("board");
     match = _match;
     match.player = _player;
-    socket = io({ query: { user: _player } });
+    const online = await onlineAgent;
+    socket = online.socket;
 
     countDown(Math.floor(new Date().getTime() - match.move_time));
     socket.on("game", function (data) {
